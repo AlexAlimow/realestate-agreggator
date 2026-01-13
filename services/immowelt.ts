@@ -227,10 +227,7 @@ export async function fetchImmowelt(filters: ListingFilters) {
                   null;
                 
                 if (image) {
-                  // Обрабатываем относительные URL
-                  if (!image.startsWith('http')) {
-                    image = image.startsWith('//') ? `https:${image}` : `https://www.immowelt.de${image}`;
-                  }
+                  image = sanitizeImageUrl(image);
                   break;
                 }
               }
@@ -249,9 +246,7 @@ export async function fetchImmowelt(filters: ListingFilters) {
                     null;
                   
                   if (image) {
-                    if (!image.startsWith('http')) {
-                      image = image.startsWith('//') ? `https:${image}` : `https://www.immowelt.de${image}`;
-                    }
+                    image = sanitizeImageUrl(image);
                     return false; // break
                   }
                 }
@@ -286,7 +281,7 @@ export async function fetchImmowelt(filters: ListingFilters) {
                 lift,
                 url,
                 date: new Date().toISOString(),
-                image: image?.startsWith('http') ? image : image ? `https://www.immowelt.de${image}` : null,
+                image: image ? sanitizeImageUrl(image) : null,
               });
             }
           } catch (err) {
@@ -339,9 +334,7 @@ export async function fetchImmowelt(filters: ListingFilters) {
             const normalizeImageUrl = (imgSrc: string | null): string | null => {
               if (!imgSrc) return null;
               if (imgSrc.includes('placeholder') || imgSrc.includes('logo') || imgSrc.includes('icon')) return null;
-              if (imgSrc.startsWith('http')) return imgSrc;
-              if (imgSrc.startsWith('//')) return `https:${imgSrc}`;
-              return `https://www.immowelt.de${imgSrc}`;
+              return sanitizeImageUrl(imgSrc);
             };
             
             // 1. Ищем все изображения в контейнере
@@ -556,4 +549,13 @@ function parseDate(dateText: string): string | null {
   }
   
   return null;
+}
+
+function sanitizeImageUrl(img: string | null): string | null {
+  if (!img) return null;
+  let s = img.trim();
+  s = s.replace(/[)'" ]+$/g, '').replace(/^[('" ]+/g, '');
+  if (s.startsWith('//')) s = `https:${s}`;
+  if (!s.startsWith('http')) s = `https://www.immowelt.de${s}`;
+  return s;
 }

@@ -77,7 +77,8 @@ const cityIdCache: Record<string, string> = {
   "Lübeck": "78",
   "Chemnitz": "20",
   "Gelsenkirchen": "46",
-  "Braunschweig": "15"
+  "Braunschweig": "15",
+  "Trier": "126"
 };
 
 async function getWGCityId(city: string): Promise<string | undefined> {

@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'immowelt.de' },
       { protocol: 'https', hostname: 'cdn.immowelt.de' },
       { protocol: 'https', hostname: 'mms.immowelt.de' },
+      { protocol: 'https', hostname: 'filestore.immowelt.de' },
     ],
   },
 };

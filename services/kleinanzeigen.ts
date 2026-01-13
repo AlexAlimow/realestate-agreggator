@@ -23,10 +23,24 @@ export async function fetchKleinanzeigen(filters: ListingFilters) {
     const city = filters.city || "Berlin";
     const citySlug = normalizeCityName(city);
     
+    const locationIdMap: Record<string, string> = {
+      berlin: "l3331",
+      trier: "l5432",
+      muenchen: "l6411",
+      munich: "l6411",
+      koeln: "l945",
+      cologne: "l945",
+      hamburg: "l9409",
+      frankfurt: "l4292",
+      "frankfurt-am-main": "l4292",
+      stuttgart: "l9280",
+      hannover: "l3155",
+    };
+
     let url: string;
 
-    if (citySlug === "trier") {
-      url = "https://www.kleinanzeigen.de/s-wohnung-mieten/trier/c203l5432";
+    if (locationIdMap[citySlug]) {
+      url = `https://www.kleinanzeigen.de/s-wohnung-mieten/${citySlug}/c203${locationIdMap[citySlug]}`;
     } else {
       url = `https://www.kleinanzeigen.de/s-wohnungen/${citySlug}/c203`;
     }
