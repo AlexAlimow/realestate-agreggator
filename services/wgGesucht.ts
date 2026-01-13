@@ -1,7 +1,5 @@
-import axios from "axios";
 import * as cheerio from "cheerio";
-
-const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+import { fetchHtml } from "../utils/httpClient";
 
 export interface ListingFilters {
   city?: string;
@@ -10,6 +8,13 @@ export interface ListingFilters {
   rooms?: number;
   minArea?: number;
   maxArea?: number;
+  balcony?: boolean;
+  kitchen?: boolean;
+  garden?: boolean;
+  lift?: boolean;
+  furnished?: boolean;
+  parking?: boolean;
+  petsAllowed?: boolean;
 }
 
 // Маппинг городов для WG-Gesucht
@@ -30,13 +35,13 @@ export async function fetchWG(filters: ListingFilters) {
   try {
     const city = filters.city || "Berlin";
     // Пробуем найти ID города, если не найден - используем slug напрямую
-    let cityId = cityMapping[city];
+    let cityId: string | undefined = cityMapping[city];
     if (!cityId) {
       // Для неизвестных городов пробуем найти по ключу без учета регистра
       const cityKey = Object.keys(cityMapping).find(
         key => key.toLowerCase() === city.toLowerCase()
       );
-      cityId = cityKey ? cityMapping[cityKey] : null;
+      cityId = cityKey ? cityMapping[cityKey] : undefined;
     }
     
     // Если город не найден в маппинге, пробуем использовать slug напрямую
@@ -65,35 +70,19 @@ export async function fetchWG(filters: ListingFilters) {
     
     let data = '';
     try {
-      const response = await axios.get(url, {
+      console.log(`[WG-Gesucht] Fetching: ${url}`);
+      data = await fetchHtml(url, {
         headers: {
-          'User-Agent': USER_AGENT,
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'de-DE,de;q=0.9,en;q=0.8',
           'Referer': 'https://www.wg-gesucht.de/',
-        },
-        timeout: 10000,
-        validateStatus: (status) => status < 500, // Принимаем все кроме 5xx
+        }
       });
-      
-      // Если получили 404, значит город не поддерживается
-      if (response.status === 404) {
-        console.log(`[WG-Gesucht] City "${city}" not found (404). This city may not be supported by WG-Gesucht.`);
-        return [];
-      }
-      
-      data = response.data;
     } catch (err: any) {
-      if (err.response?.status === 404) {
+      if (err.message && err.message.includes('404')) {
         console.log(`[WG-Gesucht] City "${city}" not found (404). This city may not be supported by WG-Gesucht.`);
         return [];
       }
       // Для других ошибок просто логируем и возвращаем пустой массив
-      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-        console.warn(`[WG-Gesucht] Timeout for city "${city}"`);
-      } else {
-        console.warn(`[WG-Gesucht] Error for city "${city}":`, err.message || err);
-      }
+      console.warn(`[WG-Gesucht] Error for city "${city}":`, err.message || err);
       return [];
     }
 
@@ -104,6 +93,7 @@ export async function fetchWG(filters: ListingFilters) {
     $('.offer_list_item, [data-id]').each((i, el) => {
       try {
         const $el = $(el);
+        const allText = $el.text();
         
         // Заголовок
         const title = $el.find('h3 a, .truncate_title a, .list-details-link').text().trim() ||
@@ -144,6 +134,17 @@ export async function fetchWG(filters: ListingFilters) {
         const dateText = $el.find('.detailansicht, .col-xs-3').last().text().trim();
         const date = parseDate(dateText) || new Date().toISOString();
 
+        // Парсим характеристики из текста (включая иконки/классы если возможно, но пока текст)
+        const lowerText = allText.toLowerCase();
+        // WG-Gesucht часто использует сокращения или иконки, но текст обычно содержит инфо
+        const balcony = lowerText.includes('balkon') || lowerText.includes('terrasse');
+        const kitchen = lowerText.includes('einbauküche') || lowerText.includes('ebk') || lowerText.includes('küche');
+        const garden = lowerText.includes('garten');
+        const lift = lowerText.includes('aufzug') || lowerText.includes('fahrstuhl') || lowerText.includes('lift');
+        const furnished = lowerText.includes('möbliert');
+        const parking = lowerText.includes('stellplatz') || lowerText.includes('garage') || lowerText.includes('parkplatz');
+        const petsAllowed = lowerText.includes('haustier');
+
         if (title && price > 0) {
           results.push({
             source: "WG-Gesucht",
@@ -152,10 +153,13 @@ export async function fetchWG(filters: ListingFilters) {
             rooms,
             city: city,
             area,
-            furnished: false,
-            petsAllowed: false,
-            balcony: false,
-            parking: false,
+            furnished,
+            petsAllowed,
+            balcony,
+            parking,
+            kitchen,
+            garden,
+            lift,
             url,
             date,
             image: image?.startsWith('http') ? image : image ? `https://www.wg-gesucht.de${image}` : null,

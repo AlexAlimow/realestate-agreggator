@@ -1,7 +1,5 @@
-import axios from "axios";
 import * as cheerio from "cheerio";
-
-const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+import { fetchHtml } from "../utils/httpClient";
 
 export interface ListingFilters {
   city?: string;
@@ -10,6 +8,13 @@ export interface ListingFilters {
   rooms?: number;
   minArea?: number;
   maxArea?: number;
+  balcony?: boolean;
+  kitchen?: boolean;
+  garden?: boolean;
+  lift?: boolean;
+  furnished?: boolean;
+  parking?: boolean;
+  petsAllowed?: boolean;
 }
 
 export async function fetchKleinanzeigen(filters: ListingFilters) {
@@ -17,19 +22,22 @@ export async function fetchKleinanzeigen(filters: ListingFilters) {
     const city = filters.city || "Berlin";
     const citySlug = city.toLowerCase().replace(/\s+/g, "-");
     
-    // Упрощенный URL
-    const url = `https://www.ebay-kleinanzeigen.de/s-wohnungen/${citySlug}/c203`;
+    // Construct URL
+    // Ideally we would add price/room filters to the URL, but the format is complex 
+    // and requires city IDs or specific path structures (e.g. /preis:500_1000).
+    // For stability, we fetch the main city page and filter in memory, 
+    // but we could try to add basic path filters if we knew the format was stable.
+    // Example: /s-wohnungen/berlin/preis:500_1000/c203l3331
+    // Without locationId (l3331), it might redirect or fail.
+    // So we stick to the base category URL.
+    const url = `https://www.kleinanzeigen.de/s-wohnungen/${citySlug}/c203`;
     
     console.log(`[Kleinanzeigen] Fetching: ${url}`);
     
-    const { data } = await axios.get(url, {
+    const data = await fetchHtml(url, {
       headers: {
-        'User-Agent': USER_AGENT,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'de-DE,de;q=0.9,en;q=0.8',
-        'Referer': 'https://www.ebay-kleinanzeigen.de/',
-      },
-      timeout: 15000,
+        'Referer': 'https://www.kleinanzeigen.de/',
+      }
     });
 
     const $ = cheerio.load(data);
@@ -144,7 +152,7 @@ export async function fetchKleinanzeigen(filters: ListingFilters) {
               href = $el.find('a').first().attr('href') || '';
             }
             
-            const url = href.startsWith('http') ? href : href ? `https://www.ebay-kleinanzeigen.de${href}` : '';
+            const url = href.startsWith('http') ? href : href ? `https://www.kleinanzeigen.de${href}` : '';
 
             // Изображение
             const image = 
@@ -152,6 +160,16 @@ export async function fetchKleinanzeigen(filters: ListingFilters) {
               $el.find('img[data-lazy]').first().attr('data-lazy') ||
               $el.find('img').first().attr('src') ||
               null;
+
+            // Парсим характеристики из текста
+            const lowerText = allText.toLowerCase();
+            const balcony = lowerText.includes('balkon') || lowerText.includes('terrasse') || lowerText.includes('loggia');
+            const kitchen = lowerText.includes('einbauküche') || lowerText.includes('ebk') || lowerText.includes('küche');
+            const garden = lowerText.includes('garten');
+            const lift = lowerText.includes('aufzug') || lowerText.includes('fahrstuhl') || lowerText.includes('lift');
+            const furnished = lowerText.includes('möbliert');
+            const parking = lowerText.includes('stellplatz') || lowerText.includes('garage') || lowerText.includes('parkplatz');
+            const petsAllowed = lowerText.includes('haustier');
 
             // Проверяем, что есть хотя бы заголовок или цена
             if ((title || price > 0) && url) {
@@ -162,13 +180,16 @@ export async function fetchKleinanzeigen(filters: ListingFilters) {
                 rooms,
                 city: city,
                 area,
-                furnished: false,
-                petsAllowed: false,
-                balcony: false,
-                parking: false,
+                furnished,
+                petsAllowed,
+                balcony,
+                parking,
+                kitchen,
+                garden,
+                lift,
                 url,
                 date: new Date().toISOString(),
-                image: image?.startsWith('http') ? image : image ? `https://www.ebay-kleinanzeigen.de${image}` : null,
+                image: image?.startsWith('http') ? image : image ? `https://www.kleinanzeigen.de${image}` : null,
               });
             }
           } catch (err) {

@@ -1,7 +1,5 @@
-import axios from "axios";
 import * as cheerio from "cheerio";
-
-const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+import { fetchHtml } from "../utils/httpClient";
 
 export interface ListingFilters {
   city?: string;
@@ -10,6 +8,13 @@ export interface ListingFilters {
   rooms?: number;
   minArea?: number;
   maxArea?: number;
+  balcony?: boolean;
+  kitchen?: boolean;
+  garden?: boolean;
+  lift?: boolean;
+  furnished?: boolean;
+  parking?: boolean;
+  petsAllowed?: boolean;
 }
 
 export async function fetchImmowelt(filters: ListingFilters) {
@@ -17,19 +22,44 @@ export async function fetchImmowelt(filters: ListingFilters) {
     const city = filters.city || "Berlin";
     const citySlug = city.toLowerCase().replace(/\s+/g, "-");
     
-    // Упрощенный URL
-    const url = `https://www.immowelt.de/liste/${citySlug}/wohnungen/mieten`;
+    // Construct URL with query parameters for better filtering at source
+    const params = new URLSearchParams();
+    if (filters.minPrice) params.append("pmi", filters.minPrice.toString());
+    if (filters.maxPrice) params.append("pma", filters.maxPrice.toString());
+    if (filters.minArea) params.append("ami", filters.minArea.toString());
+    if (filters.maxArea) params.append("ama", filters.maxArea.toString());
+    if (filters.rooms) params.append("r", filters.rooms.toString());
+    
+    // Feature filters for Immowelt (experimental mapping)
+    // eq: Equipment IDs
+    // 1: Balkon/Terrasse
+    // 2: Garten
+    // 3: Einbauküche
+    // 4: Aufzug
+    // 5: Garage/Stellplatz
+    // This is a guess based on common patterns, but safer to rely on text parsing for now
+    // or add them if we are sure. Let's try adding them to URL as it helps if it works.
+    const equipment: number[] = [];
+    if (filters.balcony) equipment.push(1);
+    if (filters.garden) equipment.push(2);
+    if (filters.kitchen) equipment.push(3);
+    if (filters.lift) equipment.push(4);
+    if (filters.parking) equipment.push(5);
+    
+    if (equipment.length > 0) {
+      equipment.forEach(eq => params.append("eq", eq.toString()));
+    }
+
+    params.append("sort", "createdDate"); // Sort by newest
+
+    const url = `https://www.immowelt.de/liste/${citySlug}/wohnungen/mieten?${params.toString()}`;
     
     console.log(`[Immowelt] Fetching: ${url}`);
     
-    const { data } = await axios.get(url, {
+    const data = await fetchHtml(url, {
       headers: {
-        'User-Agent': USER_AGENT,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'de-DE,de;q=0.9,en;q=0.8',
         'Referer': 'https://www.immowelt.de/',
-      },
-      timeout: 15000,
+      }
     });
 
     const $ = cheerio.load(data);
@@ -227,6 +257,16 @@ export async function fetchImmowelt(filters: ListingFilters) {
               });
             }
 
+            // Парсим характеристики из текста
+            const lowerText = allText.toLowerCase();
+            const balcony = lowerText.includes('balkon') || lowerText.includes('terrasse') || lowerText.includes('loggia');
+            const kitchen = lowerText.includes('einbauküche') || lowerText.includes('ebk') || lowerText.includes('küche');
+            const garden = lowerText.includes('garten');
+            const lift = lowerText.includes('aufzug') || lowerText.includes('fahrstuhl') || lowerText.includes('lift');
+            const furnished = lowerText.includes('möbliert');
+            const parking = lowerText.includes('stellplatz') || lowerText.includes('garage') || lowerText.includes('parkplatz');
+            const petsAllowed = lowerText.includes('haustier');
+
             // Проверяем, что есть хотя бы заголовок или цена
             if ((title || price > 0) && url) {
               results.push({
@@ -236,10 +276,13 @@ export async function fetchImmowelt(filters: ListingFilters) {
                 rooms,
                 city: city,
                 area,
-                furnished: false,
-                petsAllowed: false,
-                balcony: false,
-                parking: false,
+                furnished,
+                petsAllowed,
+                balcony,
+                parking,
+                kitchen,
+                garden,
+                lift,
                 url,
                 date: new Date().toISOString(),
                 image: image?.startsWith('http') ? image : image ? `https://www.immowelt.de${image}` : null,
@@ -443,6 +486,16 @@ export async function fetchImmowelt(filters: ListingFilters) {
               area = parseInt(areaMatch[1]);
             }
             
+            // Парсим характеристики
+            const lowerText = allText.toLowerCase();
+            const balcony = lowerText.includes('balkon') || lowerText.includes('terrasse') || lowerText.includes('loggia');
+            const kitchen = lowerText.includes('einbauküche') || lowerText.includes('ebk') || lowerText.includes('küche');
+            const garden = lowerText.includes('garten');
+            const lift = lowerText.includes('aufzug') || lowerText.includes('fahrstuhl') || lowerText.includes('lift');
+            const furnished = lowerText.includes('möbliert');
+            const parking = lowerText.includes('stellplatz') || lowerText.includes('garage') || lowerText.includes('parkplatz');
+            const petsAllowed = lowerText.includes('haustier');
+
             if (title && href) {
               results.push({
                 source: "Immowelt",
@@ -451,10 +504,13 @@ export async function fetchImmowelt(filters: ListingFilters) {
                 rooms,
                 city: city,
                 area,
-                furnished: false,
-                petsAllowed: false,
-                balcony: false,
-                parking: false,
+                furnished,
+                petsAllowed,
+                balcony,
+                parking,
+                kitchen,
+                garden,
+                lift,
                 url: href.startsWith('http') ? href : `https://www.immowelt.de${href}`,
                 date: new Date().toISOString(),
                 image,

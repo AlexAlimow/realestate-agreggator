@@ -18,6 +18,14 @@ const SearchForm: FC<SearchFormProps> = ({ onSearch }) => {
   const [minArea, setMinArea] = useState("");
   const [maxArea, setMaxArea] = useState("");
   const [sort, setSort] = useState("newest");
+  
+  // Boolean filters
+  const [balcony, setBalcony] = useState(false);
+  const [kitchen, setKitchen] = useState(false);
+  const [garden, setGarden] = useState(false);
+  const [lift, setLift] = useState(false);
+  const [furnished, setFurnished] = useState(false);
+  const [parking, setParking] = useState(false);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -27,6 +35,12 @@ const SearchForm: FC<SearchFormProps> = ({ onSearch }) => {
     const filters: Record<string, any> = {
       city,
       sort,
+      balcony,
+      kitchen,
+      garden,
+      lift,
+      furnished,
+      parking,
     };
     
     // Добавляем числовые фильтры только если они заполнены
@@ -184,6 +198,74 @@ const SearchForm: FC<SearchFormProps> = ({ onSearch }) => {
             <option value="areaAsc">Площадь: по возрастанию</option>
             <option value="areaDesc">Площадь: по убыванию</option>
           </select>
+        </div>
+      </div>
+
+      {/* Дополнительные фильтры */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-3">
+          Дополнительно
+        </label>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={balcony}
+              onChange={e => setBalcony(e.target.checked)}
+              className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+            />
+            <span className="text-sm text-gray-700">Балкон/Терраса</span>
+          </label>
+          
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={kitchen}
+              onChange={e => setKitchen(e.target.checked)}
+              className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+            />
+            <span className="text-sm text-gray-700">Встр. кухня</span>
+          </label>
+          
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={garden}
+              onChange={e => setGarden(e.target.checked)}
+              className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+            />
+            <span className="text-sm text-gray-700">Сад</span>
+          </label>
+          
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={lift}
+              onChange={e => setLift(e.target.checked)}
+              className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+            />
+            <span className="text-sm text-gray-700">Лифт</span>
+          </label>
+
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={furnished}
+              onChange={e => setFurnished(e.target.checked)}
+              className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+            />
+            <span className="text-sm text-gray-700">Мебель</span>
+          </label>
+
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={parking}
+              onChange={e => setParking(e.target.checked)}
+              className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+            />
+            <span className="text-sm text-gray-700">Парковка</span>
+          </label>
         </div>
       </div>
 

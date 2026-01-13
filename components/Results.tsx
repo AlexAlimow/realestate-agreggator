@@ -11,6 +11,9 @@ export interface Apartment {
   petsAllowed: boolean;
   balcony: boolean;
   parking: boolean;
+  kitchen?: boolean;
+  garden?: boolean;
+  lift?: boolean;
   url: string;
   date: string;
   image: string | null;
@@ -122,6 +125,31 @@ const Results: FC<ResultsProps> = ({ results }) => {
                     </svg>
                     <span>{item.area} м²</span>
                   </div>
+                )}
+              </div>
+
+              {/* Теги характеристик */}
+              <div className="flex flex-wrap gap-2 mb-3">
+                {item.balcony && (
+                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Балкон</span>
+                )}
+                {item.kitchen && (
+                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">Кухня</span>
+                )}
+                {item.garden && (
+                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Сад</span>
+                )}
+                {item.lift && (
+                  <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">Лифт</span>
+                )}
+                {item.furnished && (
+                  <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">Мебель</span>
+                )}
+                {item.parking && (
+                  <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">Парковка</span>
+                )}
+                {item.petsAllowed && (
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">Питомцы</span>
                 )}
               </div>
 

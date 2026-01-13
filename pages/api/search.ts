@@ -36,6 +36,9 @@ interface ListingFilters {
   petsAllowed?: boolean;
   balcony?: boolean;
   parking?: boolean;
+  kitchen?: boolean;
+  garden?: boolean;
+  lift?: boolean;
 }
 
 // -------------------------
@@ -64,7 +67,14 @@ function filterListings(listings: any[], filters: ListingFilters): any[] {
       return false;
     }
     
-    // Булевы фильтры убраны - источники не предоставляют эту информацию при парсинге
+    // Булевы фильтры
+    if (filters.balcony && !listing.balcony) return false;
+    if (filters.kitchen && !listing.kitchen) return false;
+    if (filters.garden && !listing.garden) return false;
+    if (filters.lift && !listing.lift) return false;
+    if (filters.furnished && !listing.furnished) return false;
+    if (filters.parking && !listing.parking) return false;
+    if (filters.petsAllowed && !listing.petsAllowed) return false;
     
     return true;
   });
@@ -115,6 +125,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     rooms: parseNumber(query.rooms),
     minArea: parseNumber(query.minArea),
     maxArea: parseNumber(query.maxArea),
+    balcony: isTrue(query.balcony),
+    kitchen: isTrue(query.kitchen),
+    garden: isTrue(query.garden),
+    lift: isTrue(query.lift),
+    furnished: isTrue(query.furnished),
+    parking: isTrue(query.parking),
+    petsAllowed: isTrue(query.petsAllowed),
   };
 
   // -------------------------
@@ -161,18 +178,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       rooms: serviceFilters.rooms,
       minArea: serviceFilters.minArea,
       maxArea: serviceFilters.maxArea,
-      furnished: query.furnished,
-      petsAllowed: query.petsAllowed,
-      balcony: query.balcony,
-      parking: query.parking,
+      furnished: serviceFilters.furnished,
+      petsAllowed: serviceFilters.petsAllowed,
+      balcony: serviceFilters.balcony,
+      parking: serviceFilters.parking,
+      kitchen: serviceFilters.kitchen,
+      garden: serviceFilters.garden,
+      lift: serviceFilters.lift,
     });
 
     // -------------------------
-    // Применяем фильтры (булевы фильтры убраны, так как они не парсятся из источников)
+    // Применяем фильтры
     // -------------------------
     const filters: ListingFilters = {
       ...serviceFilters,
-      // Булевы фильтры не используются, так как источники не предоставляют эту информацию
     };
 
     const beforeFilterCount = results.length;
