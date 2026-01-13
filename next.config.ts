@@ -1,7 +1,19 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'www.kleinanzeigen.de' },
+      { protocol: 'https', hostname: 'kleinanzeigen.de' },
+      { protocol: 'https', hostname: 'img.kleinanzeigen.de' },
+      { protocol: 'https', hostname: 'i.ebayimg.com' },
+      { protocol: 'https', hostname: 'www.wg-gesucht.de' },
+      { protocol: 'https', hostname: 'wg-gesucht.de' },
+      { protocol: 'https', hostname: 'www.immowelt.de' },
+      { protocol: 'https', hostname: 'immowelt.de' },
+      { protocol: 'https', hostname: 'cdn.immowelt.de' },
+    ],
+  },
 };
 
 // Разрешаем cross-origin запросы в dev режиме

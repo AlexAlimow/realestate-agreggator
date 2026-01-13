@@ -1,4 +1,5 @@
 import { FC } from "react";
+import Image from "next/image";
 
 export interface Apartment {
   source: string;
@@ -61,22 +62,13 @@ const Results: FC<ResultsProps> = ({ results }) => {
             {/* Изображение */}
             <div className="relative h-48 bg-gray-200 overflow-hidden">
               {item.image ? (
-                <img
+                <Image
                   src={item.image}
                   alt={item.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    // Пробуем placeholder с цветом по источнику
-                    const colors: Record<string, string> = {
-                      "ImmoScout24": "3B82F6",
-                      "Immowelt": "10B981",
-                      "Kleinanzeigen": "F59E0B",
-                      "WG-Gesucht": "8B5CF6",
-                    };
-                    const color = colors[item.source] || "6B7280";
-                    target.src = `https://via.placeholder.com/400x300/${color}/FFFFFF?text=${encodeURIComponent(item.source)}`;
-                  }}
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  className="object-cover"
+                  priority={false}
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gradient-to-br from-gray-100 to-gray-200">
