@@ -7,6 +7,28 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const handleSort = (sortType: string) => {
+    if (results.length === 0) return;
+
+    const sorted = [...results].sort((a, b) => {
+      switch (sortType) {
+        case "priceAsc":
+          return a.price - b.price;
+        case "priceDesc":
+          return b.price - a.price;
+        case "areaAsc":
+          return a.area - b.area;
+        case "areaDesc":
+          return b.area - a.area;
+        case "newest":
+        default:
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+      }
+    });
+
+    setResults(sorted);
+  };
+
   const handleSearch = async (filters: Record<string, any>) => {
     setLoading(true);
     setError(null);
@@ -46,7 +68,7 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <SearchForm onSearch={handleSearch} />
+        <SearchForm onSearch={handleSearch} onSortChange={handleSort} />
 
         {/* Error State */}
         {error && (

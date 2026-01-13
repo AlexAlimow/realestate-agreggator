@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { fetchHtml } from "../utils/httpClient";
+import { normalizeCityName } from "../utils/cityHelper";
 
 export interface ListingFilters {
   city?: string;
@@ -20,17 +21,15 @@ export interface ListingFilters {
 export async function fetchKleinanzeigen(filters: ListingFilters) {
   try {
     const city = filters.city || "Berlin";
-    const citySlug = city.toLowerCase().replace(/\s+/g, "-");
+    const citySlug = normalizeCityName(city);
     
-    // Construct URL
-    // Ideally we would add price/room filters to the URL, but the format is complex 
-    // and requires city IDs or specific path structures (e.g. /preis:500_1000).
-    // For stability, we fetch the main city page and filter in memory, 
-    // but we could try to add basic path filters if we knew the format was stable.
-    // Example: /s-wohnungen/berlin/preis:500_1000/c203l3331
-    // Without locationId (l3331), it might redirect or fail.
-    // So we stick to the base category URL.
-    const url = `https://www.kleinanzeigen.de/s-wohnungen/${citySlug}/c203`;
+    let url: string;
+
+    if (citySlug === "trier") {
+      url = "https://www.kleinanzeigen.de/s-wohnung-mieten/trier/c203l5432";
+    } else {
+      url = `https://www.kleinanzeigen.de/s-wohnungen/${citySlug}/c203`;
+    }
     
     console.log(`[Kleinanzeigen] Fetching: ${url}`);
     

@@ -11,9 +11,6 @@ export interface Apartment {
   petsAllowed: boolean;
   balcony: boolean;
   parking: boolean;
-  kitchen?: boolean;
-  garden?: boolean;
-  lift?: boolean;
   url: string;
   date: string;
   image: string | null;
@@ -128,31 +125,6 @@ const Results: FC<ResultsProps> = ({ results }) => {
                 )}
               </div>
 
-              {/* Теги характеристик */}
-              <div className="flex flex-wrap gap-2 mb-3">
-                {item.balcony && (
-                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Балкон</span>
-                )}
-                {item.kitchen && (
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">Кухня</span>
-                )}
-                {item.garden && (
-                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Сад</span>
-                )}
-                {item.lift && (
-                  <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">Лифт</span>
-                )}
-                {item.furnished && (
-                  <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">Мебель</span>
-                )}
-                {item.parking && (
-                  <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">Парковка</span>
-                )}
-                {item.petsAllowed && (
-                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">Питомцы</span>
-                )}
-              </div>
-
               {/* Адрес */}
               {item.address && (
                 <div className="text-sm text-gray-500 mb-3 flex items-center gap-1">
@@ -164,17 +136,29 @@ const Results: FC<ResultsProps> = ({ results }) => {
                 </div>
               )}
 
-              {/* Дополнительная информация (если доступна) */}
-              {(item.address || item.description) && (
-                <div className="mb-3">
-                  {item.address && (
-                    <p className="text-xs text-gray-500 mb-1">{item.address}</p>
-                  )}
-                  {item.description && (
-                    <p className="text-xs text-gray-600 line-clamp-2">{item.description}</p>
-                  )}
-                </div>
-              )}
+              {/* Опции */}
+              <div className="flex flex-wrap gap-2 mb-3">
+                {item.furnished && (
+                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                    Меблировано
+                  </span>
+                )}
+                {item.petsAllowed && (
+                  <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                    Животные
+                  </span>
+                )}
+                {item.balcony && (
+                  <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">
+                    Балкон
+                  </span>
+                )}
+                {item.parking && (
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    Парковка
+                  </span>
+                )}
+              </div>
 
               {/* Дата и ссылка */}
               <div className="flex items-center justify-between pt-3 border-t border-gray-200">

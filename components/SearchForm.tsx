@@ -2,16 +2,11 @@ import { FC, useState, FormEvent } from "react";
 
 interface SearchFormProps {
   onSearch: (filters: Record<string, any>) => void;
+  onSortChange?: (sort: string) => void;
 }
 
-const popularCities = [
-  "Berlin", "Munich", "Hamburg", "Frankfurt", "Cologne", 
-  "Stuttgart", "Düsseldorf", "Dortmund", "Essen", "Leipzig"
-];
-
-const SearchForm: FC<SearchFormProps> = ({ onSearch }) => {
+const SearchForm: FC<SearchFormProps> = ({ onSearch, onSortChange }) => {
   const [cityInput, setCityInput] = useState("Berlin");
-  const [useCustomCity, setUseCustomCity] = useState(false);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [rooms, setRooms] = useState("");
@@ -26,6 +21,14 @@ const SearchForm: FC<SearchFormProps> = ({ onSearch }) => {
   const [lift, setLift] = useState(false);
   const [furnished, setFurnished] = useState(false);
   const [parking, setParking] = useState(false);
+
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newSort = e.target.value;
+    setSort(newSort);
+    if (onSortChange) {
+      onSortChange(newSort);
+    }
+  };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -67,48 +70,13 @@ const SearchForm: FC<SearchFormProps> = ({ onSearch }) => {
             Город
           </label>
           <div className="flex gap-2">
-            {!useCustomCity ? (
-              <>
-                <select
-                  value={cityInput}
-                  onChange={e => setCityInput(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {popularCities.map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => setUseCustomCity(true)}
-                  className="px-3 py-2 text-sm text-blue-600 hover:text-blue-800 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
-                  title="Ввести другой город"
-                >
-                  ✏️
-                </button>
-              </>
-            ) : (
-              <>
-                <input
-                  type="text"
-                  value={cityInput}
-                  onChange={e => setCityInput(e.target.value)}
-                  placeholder="Введите название города"
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUseCustomCity(false);
-                    setCityInput("Berlin");
-                  }}
-                  className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  title="Выбрать из списка"
-                >
-                  📋
-                </button>
-              </>
-            )}
+            <input
+              type="text"
+              value={cityInput}
+              onChange={e => setCityInput(e.target.value)}
+              placeholder="Введите название города (например: Berlin, Munich)"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
         </div>
 
@@ -189,7 +157,7 @@ const SearchForm: FC<SearchFormProps> = ({ onSearch }) => {
           </label>
           <select
             value={sort}
-            onChange={e => setSort(e.target.value)}
+            onChange={handleSortChange}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="newest">Сначала новые</option>

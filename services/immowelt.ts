@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { fetchHtml } from "../utils/httpClient";
+import { normalizeCityName } from "../utils/cityHelper";
 
 export interface ListingFilters {
   city?: string;
@@ -20,7 +21,7 @@ export interface ListingFilters {
 export async function fetchImmowelt(filters: ListingFilters) {
   try {
     const city = filters.city || "Berlin";
-    const citySlug = city.toLowerCase().replace(/\s+/g, "-");
+    const citySlug = normalizeCityName(city);
     
     // Construct URL with query parameters for better filtering at source
     const params = new URLSearchParams();
