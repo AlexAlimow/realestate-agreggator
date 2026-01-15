@@ -1,5 +1,6 @@
-import { FC, useState, FormEvent } from "react";
+import { FC, useState, FormEvent, useEffect, useRef } from "react";
 import { useLanguage } from "../contexts/LanguageContext";
+import { germanCities } from "../utils/germanCities";
 
 interface SearchFormProps {
   onSearch: (filters: Record<string, any>) => void;
@@ -9,6 +10,10 @@ interface SearchFormProps {
 const SearchForm: FC<SearchFormProps> = ({ onSearch, onSortChange }) => {
   const { t } = useLanguage();
   const [cityInput, setCityInput] = useState("Berlin");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [rooms, setRooms] = useState("");
@@ -32,6 +37,64 @@ const SearchForm: FC<SearchFormProps> = ({ onSearch, onSortChange }) => {
   // New filters
   const [floor, setFloor] = useState("");
   const [source, setSource] = useState("all");
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [wrapperRef]);
+
+  const filterCities = (input: string) => {
+    if (!input) return [];
+    const normalizedInput = input.toLowerCase().trim();
+    
+    return germanCities.filter(city => {
+      const cityLower = city.toLowerCase();
+      
+      // 1. Exact match (starts with)
+      if (cityLower.startsWith(normalizedInput)) return true;
+      
+      // 2. Expanded match (ö -> oe, ü -> ue, etc.)
+      const cityExpanded = cityLower
+        .replace(/ä/g, "ae")
+        .replace(/ö/g, "oe")
+        .replace(/ü/g, "ue")
+        .replace(/ß/g, "ss");
+      if (cityExpanded.startsWith(normalizedInput)) return true;
+
+      // 3. Stripped match (ö -> o, ü -> u, etc.)
+      const cityStripped = cityLower
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (cityStripped.startsWith(normalizedInput)) return true;
+      
+      return false;
+    });
+  };
+
+  const handleCityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCityInput(value);
+    
+    if (value.length > 0) {
+      const filtered = filterCities(value);
+      setSuggestions(filtered);
+      setShowSuggestions(true);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelectCity = (city: string) => {
+    setCityInput(city);
+    setShowSuggestions(false);
+  };
 
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -92,7 +155,7 @@ const SearchForm: FC<SearchFormProps> = ({ onSearch, onSortChange }) => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {/* Город */}
-        <div>
+        <div className="relative" ref={wrapperRef}>
           <label htmlFor="search-city" className="block text-sm font-medium text-gray-700 mb-2">
             {t.searchForm.city}
           </label>
@@ -101,11 +164,32 @@ const SearchForm: FC<SearchFormProps> = ({ onSearch, onSortChange }) => {
               type="text"
               id="search-city"
               value={cityInput}
-              onChange={e => setCityInput(e.target.value)}
+              onChange={handleCityChange}
+              onFocus={() => {
+                if (cityInput.length > 0) {
+                  const filtered = filterCities(cityInput);
+                  setSuggestions(filtered);
+                  setShowSuggestions(true);
+                }
+              }}
+              autoComplete="off"
               placeholder={t.searchForm.cityPlaceholder}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
+          {showSuggestions && suggestions.length > 0 && (
+            <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto shadow-lg">
+              {suggestions.map((city, index) => (
+                <li
+                  key={index}
+                  onClick={() => handleSelectCity(city)}
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-gray-700"
+                >
+                  {city}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* Цена */}
