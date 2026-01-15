@@ -7,6 +7,9 @@ export interface ListingFilters {
   minPrice?: number;
   maxPrice?: number;
   rooms?: number;
+  maxRooms?: number;
+  bedrooms?: number;
+  bathrooms?: number;
   minArea?: number;
   maxArea?: number;
   balcony?: boolean;
@@ -15,6 +18,9 @@ export interface ListingFilters {
   lift?: boolean;
   furnished?: boolean;
   parking?: boolean;
+  garage?: boolean;
+  keller?: boolean;
+  floor?: string;
   petsAllowed?: boolean;
 }
 
@@ -31,27 +37,12 @@ export async function fetchImmowelt(filters: ListingFilters) {
     if (filters.maxArea) params.append("ama", filters.maxArea.toString());
     if (filters.rooms) params.append("r", filters.rooms.toString());
     
-    // Feature filters for Immowelt (experimental mapping)
-    // eq: Equipment IDs
-    // 1: Balkon/Terrasse
-    // 2: Garten
-    // 3: Einbauküche
-    // 4: Aufzug
-    // 5: Garage/Stellplatz
-    // This is a guess based on common patterns, but safer to rely on text parsing for now
-    // or add them if we are sure. Let's try adding them to URL as it helps if it works.
-    const equipment: number[] = [];
-    if (filters.balcony) equipment.push(1);
-    if (filters.garden) equipment.push(2);
-    if (filters.kitchen) equipment.push(3);
-    if (filters.lift) equipment.push(4);
-    if (filters.parking) equipment.push(5);
+    // Feature filters for Immowelt
+    // Мы убираем экспериментальные параметры eq, так как они могут быть неточными
+    // и приводить к пустым результатам. Лучше полагаться на парсинг текста.
     
-    if (equipment.length > 0) {
-      equipment.forEach(eq => params.append("eq", eq.toString()));
-    }
-
-    params.append("sort", "createdDate"); // Sort by newest
+    // Sort by newest
+    params.append("sort", "createdDate");
 
     const url = `https://www.immowelt.de/liste/${citySlug}/wohnungen/mieten?${params.toString()}`;
     
@@ -162,13 +153,25 @@ export async function fetchImmowelt(filters: ListingFilters) {
               }
             }
 
-            // Комнаты и площадь
+            // Комнаты, спальни, санузлы и площадь
             let rooms = 0;
+            let bedrooms = 0;
+            let bathrooms = 0;
             let area = 0;
             
             const roomsMatch = allText.match(/(\d+[,.]?\d*)\s*Zimmer/i) || allText.match(/(\d+[,.]?\d*)\s*ZKB/i);
             if (roomsMatch) {
               rooms = Math.round(parseFloat(roomsMatch[1].replace(',', '.')));
+            }
+
+            const bedroomsMatch = allText.match(/(\d+[,.]?\d*)\s*Schlafzimmer/i);
+            if (bedroomsMatch) {
+              bedrooms = Math.round(parseFloat(bedroomsMatch[1].replace(',', '.')));
+            }
+
+            const bathroomsMatch = allText.match(/(\d+[,.]?\d*)\s*(?:Bad|Bäder|Badezimmer|WC)/i);
+            if (bathroomsMatch) {
+              bathrooms = Math.round(parseFloat(bathroomsMatch[1].replace(',', '.')));
             }
             
             const areaMatch = allText.match(/(\d+)\s*m²/i) || allText.match(/(\d+)\s*qm/i);
@@ -197,7 +200,7 @@ export async function fetchImmowelt(filters: ListingFilters) {
                 const linkHref = $(link).attr('href') || '';
                 if (linkHref.includes('/immobilie/') || linkHref.includes('/expose/')) {
                   href = linkHref;
-                  return false; // break
+                  return false;
                 }
               });
             }
@@ -260,16 +263,33 @@ export async function fetchImmowelt(filters: ListingFilters) {
             const garden = lowerText.includes('garten');
             const lift = lowerText.includes('aufzug') || lowerText.includes('fahrstuhl') || lowerText.includes('lift');
             const furnished = lowerText.includes('möbliert');
-            const parking = lowerText.includes('stellplatz') || lowerText.includes('garage') || lowerText.includes('parkplatz');
+            const parking = lowerText.includes('stellplatz') || lowerText.includes('garage') || lowerText.includes('parkplatz') || lowerText.includes('tiefgarage');
             const petsAllowed = lowerText.includes('haustier');
+            
+            let floor = undefined;
+            if (lowerText.includes('erdgeschoss') || lowerText.includes('parterre') || lowerText.includes('eg')) floor = '0';
+            else if (lowerText.includes('dachgeschoss') || lowerText.includes('dg')) floor = 'dachgeschoss';
+            else if (lowerText.includes('penthouse')) floor = 'penthouse';
+            else {
+              const floorMatch = lowerText.match(/(\d+)\.?\s*etage/);
+              if (floorMatch) floor = floorMatch[1];
+            }
+            const garage = lowerText.includes('garage') || lowerText.includes('tiefgarage') || lowerText.includes('stellplatz');
+            const keller = lowerText.includes('keller');
+            const id = $el.attr('data-estate-id');
 
-            // Проверяем, что есть хотя бы заголовок или цена
             if ((title || price > 0) && url) {
               results.push({
+                id: id,
                 source: "Immowelt",
                 title: title || 'Wohnung',
                 price: price || 0,
                 rooms,
+                bedrooms,
+                bathrooms,
+                floor,
+                garage,
+                keller,
                 city: city,
                 area,
                 furnished,
@@ -466,13 +486,25 @@ export async function fetchImmowelt(filters: ListingFilters) {
               }
             }
             
-            // Комнаты и площадь из текста
+            // Комнаты, спальни, санузлы и площадь из текста
             let rooms = 0;
+            let bedrooms = 0;
+            let bathrooms = 0;
             let area = 0;
             
             const roomsMatch = allText.match(/(\d+[,.]?\d*)\s*Zimmer/i) || allText.match(/(\d+[,.]?\d*)\s*ZKB/i);
             if (roomsMatch) {
               rooms = Math.round(parseFloat(roomsMatch[1].replace(',', '.')));
+            }
+            
+            const bedroomsMatch = allText.match(/(\d+[,.]?\d*)\s*Schlafzimmer/i);
+            if (bedroomsMatch) {
+              bedrooms = Math.round(parseFloat(bedroomsMatch[1].replace(',', '.')));
+            }
+            
+            const bathroomsMatch = allText.match(/(\d+[,.]?\d*)\s*(?:Bad|Bäder|Badezimmer|WC)/i);
+            if (bathroomsMatch) {
+              bathrooms = Math.round(parseFloat(bathroomsMatch[1].replace(',', '.')));
             }
             
             const areaMatch = allText.match(/(\d+)\s*m²/i) || allText.match(/(\d+)\s*qm/i);
@@ -491,11 +523,30 @@ export async function fetchImmowelt(filters: ListingFilters) {
             const petsAllowed = lowerText.includes('haustier');
 
             if (title && href) {
+              // Парсинг этажа, гаража и подвала из текста
+              const fullText = (title + ' ' + city).toLowerCase();
+              let floor = undefined;
+              if (fullText.includes('erdgeschoss') || fullText.includes('parterre') || fullText.includes('eg')) floor = '0';
+              else if (fullText.includes('dachgeschoss') || fullText.includes('dg')) floor = 'dachgeschoss';
+              else if (fullText.includes('penthouse')) floor = 'penthouse';
+              else {
+                const floorMatch = fullText.match(/(\d+)\.?\s*etage/);
+                if (floorMatch) floor = floorMatch[1];
+              }
+
+              const garage = fullText.includes('garage') || fullText.includes('stellplatz');
+              const keller = fullText.includes('keller');
+
               results.push({
                 source: "Immowelt",
                 title: title || 'Wohnung',
                 price: price || 0,
                 rooms,
+                bedrooms,
+                bathrooms,
+                floor: floor,
+                garage: garage,
+                keller: keller,
                 city: city,
                 area,
                 furnished,

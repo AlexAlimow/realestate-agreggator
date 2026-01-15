@@ -7,6 +7,9 @@ export interface ListingFilters {
   minPrice?: number;
   maxPrice?: number;
   rooms?: number;
+  maxRooms?: number;
+  bedrooms?: number;
+  bathrooms?: number;
   minArea?: number;
   maxArea?: number;
   balcony?: boolean;
@@ -131,13 +134,25 @@ export async function fetchKleinanzeigen(filters: ListingFilters) {
               }
             }
 
-            // Комнаты и площадь из всего текста элемента
+            // Комнаты, спальни, санузлы и площадь из всего текста элемента
             let rooms = 0;
+            let bedrooms = 0;
+            let bathrooms = 0;
             let area = 0;
             
             const roomsMatch = allText.match(/(\d+)\s*Zimmer/i) || allText.match(/(\d+)\s*ZKB/i);
             if (roomsMatch) {
               rooms = parseInt(roomsMatch[1]);
+            }
+
+            const bedroomsMatch = allText.match(/(\d+)\s*Schlafzimmer/i);
+            if (bedroomsMatch) {
+              bedrooms = parseInt(bedroomsMatch[1]);
+            }
+
+            const bathroomsMatch = allText.match(/(\d+)\s*(?:Bad|Bäder|Badezimmer|WC)/i);
+            if (bathroomsMatch) {
+              bathrooms = parseInt(bathroomsMatch[1]);
             }
             
             const areaMatch = allText.match(/(\d+)\s*m²/i) || allText.match(/(\d+)\s*qm/i);
@@ -186,13 +201,34 @@ export async function fetchKleinanzeigen(filters: ListingFilters) {
 
             // Проверяем, что есть хотя бы заголовок или цена
             if ((title || price > 0) && url) {
+              // Парсинг этажа, гаража и подвала из текста
+              const fullText = (title + ' ' + allText).toLowerCase();
+              let floor = undefined;
+              if (fullText.includes('erdgeschoss') || fullText.includes('parterre') || fullText.includes('eg')) floor = '0';
+              else if (fullText.includes('dachgeschoss') || fullText.includes('dg')) floor = 'dachgeschoss';
+              else if (fullText.includes('penthouse')) floor = 'penthouse';
+              else {
+                const floorMatch = fullText.match(/(\d+)\.?\s*etage/);
+                if (floorMatch) floor = floorMatch[1];
+              }
+
+              const garage = fullText.includes('garage') || fullText.includes('stellplatz');
+              const keller = fullText.includes('keller');
+              const id = $el.attr('data-adid') || url;
+
               results.push({
+                id,
                 source: "Kleinanzeigen",
                 title: title || 'Wohnung',
                 price: price || 0,
-                rooms,
+                rooms: rooms || 1,
+                bedrooms,
+                bathrooms,
+                floor,
+                garage,
+                keller,
                 city: city,
-                area,
+                area: area || 0,
                 furnished,
                 petsAllowed,
                 balcony,

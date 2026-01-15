@@ -7,6 +7,9 @@ export interface ListingFilters {
   minPrice?: number;
   maxPrice?: number;
   rooms?: number;
+  maxRooms?: number;
+  bedrooms?: number;
+  bathrooms?: number;
   minArea?: number;
   maxArea?: number;
   balcony?: boolean;
@@ -224,6 +227,20 @@ export async function fetchWG(filters: ListingFilters) {
 
           // Парсим характеристики из текста
           const lowerText = allText.toLowerCase();
+
+          // Комнаты, спальни, санузлы
+          let bedrooms = 0;
+          let bathrooms = 0;
+
+          const bedroomsMatch = allText.match(/(\d+)\s*Schlafzimmer/i);
+          if (bedroomsMatch) {
+            bedrooms = parseInt(bedroomsMatch[1]);
+          }
+
+          const bathroomsMatch = allText.match(/(\d+)\s*(?:Bad|Bäder|Badezimmer|WC)/i);
+          if (bathroomsMatch) {
+            bathrooms = parseInt(bathroomsMatch[1]);
+          }
           const balcony = lowerText.includes('balkon') || lowerText.includes('terrasse');
           const kitchen = lowerText.includes('einbauküche') || lowerText.includes('ebk') || lowerText.includes('küche');
           const garden = lowerText.includes('garten');
@@ -231,6 +248,17 @@ export async function fetchWG(filters: ListingFilters) {
           const furnished = lowerText.includes('möbliert');
           const parking = lowerText.includes('stellplatz') || lowerText.includes('garage') || lowerText.includes('parkplatz');
           const petsAllowed = lowerText.includes('haustier');
+          
+          let floor = undefined;
+          if (lowerText.includes('erdgeschoss') || lowerText.includes('parterre') || lowerText.includes('eg')) floor = '0';
+          else if (lowerText.includes('dachgeschoss') || lowerText.includes('dg')) floor = 'dachgeschoss';
+          else if (lowerText.includes('penthouse')) floor = 'penthouse';
+          else {
+            const floorMatch = lowerText.match(/(\d+)\.?\s*etage/);
+            if (floorMatch) floor = floorMatch[1];
+          }
+          const garage = lowerText.includes('garage') || lowerText.includes('stellplatz') || lowerText.includes('tiefgarage');
+          const keller = lowerText.includes('keller');
 
           if (title && price > 0) {
             results.push({
@@ -238,6 +266,11 @@ export async function fetchWG(filters: ListingFilters) {
               title,
               price,
               rooms,
+              bedrooms,
+              bathrooms,
+              floor,
+              garage,
+              keller,
               city: city,
               area,
               furnished,

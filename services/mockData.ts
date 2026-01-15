@@ -17,6 +17,8 @@ export interface Listing {
   title: string;
   price: number;
   rooms: number;
+  bedrooms?: number;
+  bathrooms?: number;
   city: string;
   area: number;
   furnished: boolean;
@@ -80,6 +82,8 @@ function generateListing(city: string): Listing {
   const rooms = randomInt(1, 4);
   const basePrice = rooms * 400 + randomInt(200, 600);
   const area = rooms * 25 + randomInt(10, 30);
+  const bedrooms = Math.max(1, rooms - 1);
+  const bathrooms = rooms > 2 ? 2 : 1;
   
   const furnished = Math.random() > 0.5;
   const petsAllowed = Math.random() > 0.6;
@@ -108,6 +112,8 @@ function generateListing(city: string): Listing {
     title: `${title} - ${rooms} rooms`,
     price: basePrice,
     rooms,
+    bedrooms,
+    bathrooms,
     city,
     area,
     furnished,

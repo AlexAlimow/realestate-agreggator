@@ -1,8 +1,11 @@
 import { useState } from "react";
 import SearchForm from "../components/SearchForm";
 import Results, { Apartment } from "../components/Results";
+import { useLanguage } from "../contexts/LanguageContext";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 
 export default function Home() {
+  const { t } = useLanguage();
   const [results, setResults] = useState<Apartment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +48,7 @@ export default function Home() {
       setResults(Array.isArray(data) ? data : []);
     } catch (error: any) {
       console.error("Search error:", error);
-      setError(error.message || "Произошла ошибка при поиске. Попробуйте позже.");
+      setError(error.message || t.results.error);
       setResults([]);
     } finally {
       setLoading(false);
@@ -56,13 +59,16 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-3xl font-bold text-gray-900">
-            🏠 Поиск недвижимости в Германии
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Найдите идеальную квартиру или дом по всей Германии
-          </p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              🏠 {t.header.title}
+            </h1>
+            <p className="text-gray-600 mt-2">
+              {t.header.subtitle}
+            </p>
+          </div>
+          <LanguageSwitcher />
         </div>
       </header>
 
@@ -88,8 +94,8 @@ export default function Home() {
             <div className="relative">
               <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
             </div>
-            <span className="mt-4 text-gray-600">Поиск объявлений на всех сайтах...</span>
-            <span className="mt-2 text-sm text-gray-500">Это может занять несколько секунд</span>
+            <span className="mt-4 text-gray-600">{t.results.loading}</span>
+            <span className="mt-2 text-sm text-gray-500">{t.results.loadingDesc}</span>
           </div>
         )}
 
