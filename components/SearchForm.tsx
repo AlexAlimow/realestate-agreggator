@@ -84,8 +84,8 @@ const SearchForm: FC<SearchFormProps> = ({ onSearch, onSortChange }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6 mb-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">{t.searchForm.title}</h2>
+    <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">{t.searchForm.title}</h2>
       <p className="text-sm text-gray-600 mb-6">
         {t.searchForm.description}
       </p>
@@ -340,16 +340,16 @@ const SearchForm: FC<SearchFormProps> = ({ onSearch, onSortChange }) => {
         </label>
       </fieldset>
 
-      <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col md:flex-row justify-between items-center pt-4 border-t border-gray-200 gap-4">
+        <div className="flex flex-col sm:flex-row items-center w-full md:w-auto gap-4 md:space-x-4">
           {/* Сортировка */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm text-gray-600" htmlFor="search-sort">{t.searchForm.sort.label}:</label>
+          <div className="flex items-center justify-between w-full sm:w-auto space-x-2">
+            <label className="text-sm text-gray-600 whitespace-nowrap" htmlFor="search-sort">{t.searchForm.sort.label}:</label>
             <select
               value={sort}
               onChange={handleSortChange}
               id="search-sort"
-              className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 flex-1 sm:flex-none"
             >
               <option value="newest">{t.searchForm.sort.newest}</option>
               <option value="priceAsc">{t.searchForm.sort.priceAsc}</option>
@@ -360,13 +360,13 @@ const SearchForm: FC<SearchFormProps> = ({ onSearch, onSortChange }) => {
           </div>
 
           {/* Источник */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm text-gray-600" htmlFor="search-source">{t.searchForm.sites.label}:</label>
+          <div className="flex items-center justify-between w-full sm:w-auto space-x-2">
+            <label className="text-sm text-gray-600 whitespace-nowrap" htmlFor="search-source">{t.searchForm.sites.label}:</label>
             <select
               value={source}
               onChange={e => setSource(e.target.value)}
               id="search-source"
-              className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 flex-1 sm:flex-none"
             >
               <option value="all">{t.searchForm.sites.all}</option>
               <option value="immowelt">{t.searchForm.sites.immowelt}</option>
@@ -378,7 +378,7 @@ const SearchForm: FC<SearchFormProps> = ({ onSearch, onSortChange }) => {
 
         <button
           type="submit"
-          className="bg-blue-600 text-white px-8 py-2 rounded-lg hover:bg-blue-700 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="w-full md:w-auto bg-blue-600 text-white px-8 py-2 rounded-lg hover:bg-blue-700 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           {t.searchForm.searchButton}
         </button>
