@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
-import puppeteer from "puppeteer";
 import { normalizeCityName } from "../utils/cityHelper";
+import { fetchHtml } from "../utils/httpClient";
 
 export interface ListingFilters {
   city?: string;
@@ -143,40 +143,75 @@ export async function fetchWG(filters: ListingFilters) {
       ? `https://www.wg-gesucht.de/wg-zimmer-in-${citySlug}.${cityId}.0.1.0.html?${params.toString()}`
       : `https://www.wg-gesucht.de/wg-zimmer-in-${citySlug}.0.1.0.html?${params.toString()}`;
     
-    console.log(`[WG-Gesucht] Fetching via Puppeteer: ${url}`);
+    let content = "";
 
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-
-    try {
-      const page = await browser.newPage();
-      await page.setViewport({ width: 1280, height: 800 });
-      
-      // Navigate
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-      
-      // Check for Bot Check or Cookie Banner
-      const title = await page.title();
-      if (title.includes('Überprüfung') || title.includes('Bot Check')) {
-          console.log('[WG-Gesucht] Bot check detected. Attempting to bypass...');
-          // Try to find and click the checkbox/button if simple
-          try {
-              const button = await page.$('button[type="submit"], input[type="submit"]');
-              if (button) {
-                  await button.click();
-                  await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 5000 }).catch(() => {});
-              }
-          } catch (e) {
-              console.log('[WG-Gesucht] Bypass attempt failed.');
-          }
+    // На Vercel или если Puppeteer недоступен, используем простой fetch
+    // WG-Gesucht имеет защиту, поэтому fetch может не сработать (вернуть 403 или капчу),
+    // но это лучше, чем падение всего API с ошибкой 500 из-за отсутствия Chromium.
+    if (process.env.VERCEL) {
+      console.log(`[WG-Gesucht] Vercel environment detected. Using fetchHtml fallback for ${url}`);
+      try {
+        content = await fetchHtml(url);
+      } catch (err: any) {
+        console.warn(`[WG-Gesucht] Fetch fallback failed: ${err.message}`);
+        // Возвращаем пустой массив, чтобы не ломать весь поиск
+        return [];
       }
+    } else {
+      // Локально пытаемся использовать Puppeteer
+      console.log(`[WG-Gesucht] Fetching via Puppeteer: ${url}`);
+      try {
+        const puppeteer = (await import("puppeteer")).default;
+        const browser = await puppeteer.launch({
+          headless: true,
+          args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
 
-      // Get content
-      const content = await page.content();
-      const $ = cheerio.load(content);
-      const results: any[] = [];
+        try {
+          const page = await browser.newPage();
+          await page.setViewport({ width: 1280, height: 800 });
+          
+          // Navigate
+          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+          
+          // Check for Bot Check or Cookie Banner
+          const title = await page.title();
+          if (title.includes('Überprüfung') || title.includes('Bot Check')) {
+              console.log('[WG-Gesucht] Bot check detected. Attempting to bypass...');
+              // Try to find and click the checkbox/button if simple
+              try {
+                  const button = await page.$('button[type="submit"], input[type="submit"]');
+                  if (button) {
+                      await button.click();
+                      await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 5000 }).catch(() => {});
+                  }
+              } catch (e) {
+                  console.log('[WG-Gesucht] Bypass attempt failed.');
+              }
+          }
+
+          // Get content
+          content = await page.content();
+        } finally {
+          await browser.close();
+        }
+      } catch (err: any) {
+        console.error(`[WG-Gesucht] Puppeteer error: ${err.message}`);
+        // Если Puppeteer не работает (например, нет Chromium), пробуем fetch
+        console.log(`[WG-Gesucht] Trying fetch fallback...`);
+        try {
+          content = await fetchHtml(url);
+        } catch (fetchErr: any) {
+          console.warn(`[WG-Gesucht] Fetch fallback also failed: ${fetchErr.message}`);
+          return [];
+        }
+      }
+    }
+
+    if (!content) return [];
+
+    const $ = cheerio.load(content);
+    const results: any[] = [];
 
       // Парсим результаты WG-Gesucht
       $('.offer_list_item').each((i, el) => {
@@ -293,12 +328,6 @@ export async function fetchWG(filters: ListingFilters) {
       console.log(`[WG-Gesucht] Found ${results.length} listings via Puppeteer.`);
       return results.slice(0, 50);
 
-    } catch (err: any) {
-      console.error("WG-Gesucht Puppeteer error:", err.message);
-      return [];
-    } finally {
-      await browser.close();
-    }
   } catch (err: any) {
     console.error("WG-Gesucht fetch error:", err.message);
     return [];
